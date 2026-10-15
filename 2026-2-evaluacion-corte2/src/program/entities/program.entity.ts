@@ -7,7 +7,42 @@
 // TODO Reto 4: relación N:1 con User -> propiedad `createdBy?: User` (el admin que lo creó)
 //
 // Usa imports relativos (ej. "../../student/entities/student.entity"), no "src/...":
+
+import { Student } from "src/student/entities/student.entity";
+import { User } from "src/user/entities/user.entity";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+
 // Jest no resuelve el alias "src/" y el test de Student dejaría de correr.
+@Entity()
 export class Program {
 
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+
+     @Column({
+        type: "text",
+        unique: true
+    })
+    name: string;
+
+     @Column({
+        type: "text",
+        unique: true
+    })
+    code: string;
+
+    @Column("int")
+    credits: number;
+
+    @OneToMany(
+        () => Student,
+        (student) => student.program
+    )
+    students?: Student[];
+
+    @ManyToOne(
+        () => User,
+        { nullable: true }
+    )
+    createdBy?: User;
 }

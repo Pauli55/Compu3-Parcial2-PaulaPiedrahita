@@ -6,7 +6,9 @@ import { ProgramController } from './program.controller';
   controllers: [ProgramController],
   // TODO Reto 1: registra la entidad Program con TypeORM
   // TODO Reto 4: importa lo necesario para poder usar @Auth() en el controlador
-  imports: [],
+  imports: [
+    TypeOrmModule.forFeature([Student, Grades])
+  ],
   providers: [ProgramService],
 })
 export class ProgramModule {}
