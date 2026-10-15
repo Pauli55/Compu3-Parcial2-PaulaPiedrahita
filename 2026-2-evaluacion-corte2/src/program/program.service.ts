@@ -5,6 +5,8 @@ import { DataSource, In, Repository } from 'typeorm';
 import { Program } from './entities/program.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CreateProgramDto } from './dto/create-program.dto';
+import { PaginationDto } from 'src/student/dto/pagination.dto';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class ProgramService {
@@ -41,9 +43,34 @@ export class ProgramService {
 
 
     // TODO Reto 1: findAll(paginationDto) -> lista paginada (limit / skip)
-
+    async findAll(paginationDto: PaginationDto){
+        const { limit, skip } = paginationDto;
+        return this.programRepository.find({
+            take: limit,
+            skip: skip
+        });
+    }
     
     // TODO Reto 2: findOne(id) -> programa con sus estudiantes, 404 si no existe
+    async findOne(id: string){
+        let program: Program | null;
+
+        if(isUUID(id)){
+            program = await this.programRepository.findOne({
+                where: { id: id },
+                relations: { students: true }
+            });
+        }else{
+            program = await this.programRepository.createQueryBuilder("program")
+                .where("UPPER(program.name) = :name", { name: id.toUpperCase() })
+                .leftJoinAndSelect("name.students", "students")
+                .getOne();
+        }
+
+        if(!program) throw new NotFoundException(`Program ${name} not found`);
+
+        return program;
+    }
 
     // TODO Reto 2: assignStudents(id, assignStudentsDto) -> AGREGA estudiantes al programa
     //   dentro de una transacción (QueryRunner), conservando los que ya tenía.
