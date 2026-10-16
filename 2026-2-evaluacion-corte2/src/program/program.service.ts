@@ -7,6 +7,9 @@ import { User } from 'src/user/entities/user.entity';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { PaginationDto } from 'src/student/dto/pagination.dto';
 import { isUUID } from 'class-validator';
+import { AssignStudentsDto } from './dto/assign-students.dto';
+import { Student } from 'src/student/entities/student.entity';
+import { UUID } from 'typeorm/driver/mongodb/bson.typings.js';
 
 @Injectable()
 export class ProgramService {
@@ -78,6 +81,31 @@ export class ProgramService {
     //   traer los actuales -> combinar con los nuevos -> guardar la lista completa.
     //   Si algún id no existe: 404 y rollback.
 
+    async assignStudents(id: string, assignStudentsDto: AssignStudentsDto){
+        const program = await this.findOne(id);
+
+        const queryRunner = this.datasource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try{
+            for(const studentId of assignStudentsDto.studentIds){
+                const result = await queryRunner.manager.update(Student, { studentId }, { id });
+                if(!result.affected)
+                    throw new NotFoundException(`Student with id ${studentId} not found`);
+            }
+
+            const totalMembers = await queryRunner.manager.count(Student, { where: { program: { id } } });
+            
+        }catch(error){
+            await queryRunner.rollbackTransaction();
+            this.handleException(error);
+        }finally{
+            await queryRunner.release();
+        }
+
+        return this.findOne(id);
+    }
     // TODO Reto 3: bulkCreate(bulkCreateProgramDto, user) -> crea todos los programas o ninguno
     //   (transacción). Cualquier nombre/código repetido -> 409 y rollback.
 }
