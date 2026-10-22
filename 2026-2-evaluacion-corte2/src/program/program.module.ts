@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ProgramService } from './program.service';
 import { ProgramController } from './program.controller';
 import { Program } from './entities/program.entity';
-import { UserModule } from 'src/user/user.module';
+import { UserModule } from '../user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({

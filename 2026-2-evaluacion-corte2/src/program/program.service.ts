@@ -3,17 +3,17 @@ import { BadRequestException, ConflictException, HttpException, InternalServerEr
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { Program } from './entities/program.entity';
-import { User } from 'src/user/entities/user.entity';
+import { User } from '../user/entities/user.entity';
 import { CreateProgramDto } from './dto/create-program.dto';
-import { PaginationDto } from 'src/student/dto/pagination.dto';
+import { PaginationDto } from '../student/dto/pagination.dto';
 import { isUUID } from 'class-validator';
 import { AssignStudentsDto } from './dto/assign-students.dto';
-import { Student } from 'src/student/entities/student.entity';
+import { Student } from '../student/entities/student.entity';
 import { UUID } from 'typeorm/driver/mongodb/bson.typings.js';
+import { BulkCreateProgramDto } from './dto/bulk-create-program.dto';
 
 @Injectable()
 export class ProgramService {
-    [x: string]: any;
 
     // TODO Reto 1: inyecta el repositorio de Program (y lo que necesites para las transacciones)
     private readonly logger = new Logger("ProgramService");
@@ -70,7 +70,7 @@ export class ProgramService {
                 .getOne();
         }
 
-        if(!program) throw new NotFoundException(`Program ${name} not found`);
+        if(!program) throw new NotFoundException(`Program ${id} not found`);
 
         return program;
     }
@@ -89,14 +89,23 @@ export class ProgramService {
         await queryRunner.startTransaction();
 
         try{
-            for(const studentId of assignStudentsDto.studentIds){
-                const result = await queryRunner.manager.update(Student, { studentId }, { id });
-                if(!result.affected)
-                    throw new NotFoundException(`Student with id ${studentId} not found`);
-            }
+            const studentIds = [...new Set(assignStudentsDto.studentIds)];
+            const newStudents = await queryRunner.manager.findBy(Student, { id: In(studentIds) });
 
-            const totalMembers = await queryRunner.manager.count(Student, { where: { program: { id } } });
-            
+            const foundIds = newStudents.map(student => student.id);
+            const missingIds = studentIds.filter(studentId => !foundIds.includes(studentId));
+            if(missingIds.length)
+                throw new NotFoundException(`Students with ids ${missingIds.join(", ")} not found`);
+
+            const currentStudents = program.students ?? [];
+            const currentIds = currentStudents.map(student => student.id);
+            program.students = [
+                ...currentStudents,
+                ...newStudents.filter(student => !currentIds.includes(student.id))
+            ];
+
+            await queryRunner.manager.save(program);
+            await queryRunner.commitTransaction();
         }catch(error){
             await queryRunner.rollbackTransaction();
             this.handleException(error);
@@ -108,4 +117,33 @@ export class ProgramService {
     }
     // TODO Reto 3: bulkCreate(bulkCreateProgramDto, user) -> crea todos los programas o ninguno
     //   (transacción). Cualquier nombre/código repetido -> 409 y rollback.
+
+    async bulkCreate(bulkCreateProgramDto: BulkCreateProgramDto, user: User){
+        const queryRunner = this.datasource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try{
+            const programs = bulkCreateProgramDto.programs.map(program =>
+                this.programRepository.create({ ...program, createdBy: user })
+            );
+            await queryRunner.manager.save(Program, programs);
+            await queryRunner.commitTransaction();
+            return programs;
+        }catch(error){
+            await queryRunner.rollbackTransaction();
+            this.handleException(error);
+        }finally{
+            await queryRunner.release();
+        }
+    }
+
+    private handleException(error: any){
+        if(error instanceof HttpException) throw error;
+        this.logger.error(error);
+        if(error.code === '23505')
+            throw new ConflictException(error.detail);
+        throw new InternalServerErrorException("Unexpected error, check server logs");
+    }
+
 }

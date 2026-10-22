@@ -7,7 +7,7 @@ export class AssignStudentsDto {
 
     @IsArray()
     @ArrayNotEmpty()
-    @IsUUID()
+    @IsUUID(undefined, { each: true })
     studentIds: string[];
 
 }

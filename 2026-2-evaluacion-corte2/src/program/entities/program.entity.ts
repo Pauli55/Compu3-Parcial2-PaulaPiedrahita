@@ -8,8 +8,8 @@
 //
 // Usa imports relativos (ej. "../../student/entities/student.entity"), no "src/...":
 
-import { Student } from "src/student/entities/student.entity";
-import { User } from "src/user/entities/user.entity";
+import { Student } from "../../student/entities/student.entity";
+import { User } from "../../user/entities/user.entity";
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 // Jest no resuelve el alias "src/" y el test de Student dejaría de correr.

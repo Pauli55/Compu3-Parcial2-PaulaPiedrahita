@@ -1,12 +1,13 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ProgramService } from './program.service';
-import { ValidRoles } from 'src/user/enums/valid-roles.enum';
-import { Auth } from 'src/user/decorators/auth.decorator';
+import { ValidRoles } from '../user/enums/valid-roles.enum';
+import { Auth } from '../user/decorators/auth.decorator';
 import { CreateProgramDto } from './dto/create-program.dto';
-import { GetUser } from 'src/user/decorators/get-user.decorator';
-import { User } from 'src/user/entities/user.entity';
-import { PaginationDto } from 'src/student/dto/pagination.dto';
+import { GetUser } from '../user/decorators/get-user.decorator';
+import { User } from '../user/entities/user.entity';
+import { PaginationDto } from '../student/dto/pagination.dto';
 import { AssignStudentsDto } from './dto/assign-students.dto';
+import { BulkCreateProgramDto } from './dto/bulk-create-program.dto';
 
 @Controller('program')
 export class ProgramController {
@@ -14,7 +15,7 @@ export class ProgramController {
 
   // TODO Reto 1: POST   /api/program               -> crear programa
   @Post()
-  @Auth(ValidRoles.admin, ValidRoles.teacher)
+  @Auth(ValidRoles.admin)
   create(@Body() createProgramDto: CreateProgramDto, @GetUser() user: User){
     return this.programService.create(createProgramDto, user);
   }
@@ -29,10 +30,17 @@ export class ProgramController {
     return this.programService.findOne(id);
   }
   // TODO Reto 2: PATCH  /api/program/:id/students  -> agregar estudiantes (acumulativo)
-  @Post(":id/students")
+  @Patch(":id/students")
+  @Auth(ValidRoles.admin)
   assignStudents(@Param("id", ParseUUIDPipe) id: string, @Body() assignStudentsDto: AssignStudentsDto){
     return this.programService.assignStudents(id, assignStudentsDto);
   }
   // TODO Reto 3: POST   /api/program/bulk          -> crear programas en lote (todo o nada)
+  @Post("bulk")
+  @Auth(ValidRoles.admin)
+  bulkCreate(@Body() bulkCreateProgramDto: BulkCreateProgramDto, @GetUser() user: User){
+    return this.programService.bulkCreate(bulkCreateProgramDto, user);
+  }
+
   // TODO Reto 4: proteger los POST y el PATCH para que solo un admin pueda usarlos
 }

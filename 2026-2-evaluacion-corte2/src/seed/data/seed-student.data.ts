@@ -1,4 +1,4 @@
-import { Grades } from "src/student/entities/grades.entity";
+import { Grades } from "../../student/entities/grades.entity";
 
 export class SeedStudent{
     name: string;
