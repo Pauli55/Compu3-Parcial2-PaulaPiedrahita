@@ -56,20 +56,12 @@ export class ProgramService {
     
     // TODO Reto 2: findOne(id) -> programa con sus estudiantes, 404 si no existe
     async findOne(id: string){
-        let program: Program | null;
 
-        if(isUUID(id)){
-            program = await this.programRepository.findOne({
-                where: { id: id },
-                relations: { students: true }
-            });
-        }else{
-            program = await this.programRepository.createQueryBuilder("program")
-                .where("UPPER(program.name) = :name", { name: id.toUpperCase() })
-                .leftJoinAndSelect("name.students", "students")
-                .getOne();
-        }
-
+         const program = await this.programRepository.findOne({
+        where: { id },
+        relations: { students: true }
+        });
+        
         if(!program) throw new NotFoundException(`Program ${id} not found`);
 
         return program;

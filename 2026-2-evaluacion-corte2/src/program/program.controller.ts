@@ -26,7 +26,7 @@ export class ProgramController {
   }
   // TODO Reto 2: GET    /api/program/:id           -> programa con sus estudiantes
   @Get(":id")
-  findOne(@Param("id") id: string){
+  findOne(@Param("id", ParseUUIDPipe) id: string){
     return this.programService.findOne(id);
   }
   // TODO Reto 2: PATCH  /api/program/:id/students  -> agregar estudiantes (acumulativo)
